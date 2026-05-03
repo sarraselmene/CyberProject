@@ -1,0 +1,20 @@
+.page { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+.header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+.iconWrap {
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, #9333ea, #c084fc);
+  border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  color: white; box-shadow: 0 4px 16px rgba(192, 132, 252, 0.35);
+}
+.title { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; color: var(--navy); letter-spacing: -0.02em; }
+.sub { font-size: 0.85rem; color: var(--gray-600); margin-top: 4px; }
+.placeholder { background: var(--white); border: 2px dashed var(--gray-200); border-radius: 20px; padding: 56px 40px; text-align: center; color: var(--gray-600); }
+.placeholder svg { color: var(--gray-200); margin-bottom: 20px; }
+.placeholder h2 { font-family: var(--font-display); font-size: 1.4rem; color: var(--navy); margin-bottom: 12px; }
+.placeholder p { font-size: 0.9rem; line-height: 1.7; max-width: 440px; margin: 0 auto 24px; }
+.todoList { background: var(--off-white); border-radius: 12px; padding: 20px 28px; text-align: left; max-width: 400px; margin: 0 auto 20px; }
+.todoList h3 { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--navy); margin-bottom: 12px; }
+.todoList ul { padding-left: 18px; display: flex; flex-direction: column; gap: 7px; }
+.todoList li { font-size: 0.85rem; color: var(--gray-600); }
+.apiNote { background: var(--navy); border-radius: 10px; padding: 14px 20px; font-size: 0.8rem; color: var(--gray-200); display: inline-block; text-align: left; line-height: 1.8; }
+.apiNote code { font-family: var(--font-mono); color: var(--accent); }

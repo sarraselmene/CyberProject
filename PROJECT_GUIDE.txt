@@ -1,0 +1,289 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        CYBERPROJECT — GUIDE ÉQUIPE                         ║
+║                         Application Cybersécurité                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STRUCTURE DU PROJET
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+cyberproject/
+├── backend/
+│   ├── main.py                    ← Point d'entrée FastAPI (NE PAS MODIFIER)
+│   ├── requirements.txt           ← Dépendances Python
+│   └── routers/
+│       ├── __init__.py
+│       ├── rsa.py                 ← MEMBRE 1 (déjà implémenté)
+│       ├── ecc.py                 ← MEMBRE 2 (à compléter)
+│       ├── rsa_attack.py          ← MEMBRE 3 (à compléter)
+│       └── ecc_attack.py          ← MEMBRE 4 (à compléter)
+│
+└── frontend/
+    ├── index.html
+    ├── vite.config.js
+    ├── package.json
+    └── src/
+        ├── main.jsx               ← Entrée React (NE PAS MODIFIER)
+        ├── App.jsx                ← Routes (NE PAS MODIFIER)
+        ├── index.css              ← Variables CSS globales (NE PAS MODIFIER)
+        ├── components/
+        │   ├── Navbar.jsx         ← Navigation (NE PAS MODIFIER)
+        │   └── Navbar.module.css
+        └── pages/
+            ├── home/              ← MEMBRE 1
+            ├── rsa/               ← MEMBRE 1 (déjà implémenté)
+            ├── ecc/               ← MEMBRE 2 (à compléter)
+            ├── rsa_attack/        ← MEMBRE 3 (à compléter)
+            └── ecc_attack/        ← MEMBRE 4 (à compléter)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ LANCEMENT DU PROJET
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BACKEND (Terminal 1) :
+  cd cyberproject/backend
+  pip install -r requirements.txt
+  uvicorn main:app --reload --port 8000
+
+  → API disponible sur http://localhost:8000
+  → Documentation Swagger : http://localhost:8000/docs
+
+FRONTEND (Terminal 2) :
+  cd cyberproject/frontend
+  npm install
+  npm run dev
+
+  → Application sur http://localhost:5173
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ MEMBRE 1 — RSA Cryptography (TERMINÉ)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Responsabilités : Interface Accueil + Interface RSA Cryptography
+
+FICHIERS FRONTEND :
+  - frontend/src/pages/home/Home.jsx          ← Page d'accueil
+  - frontend/src/pages/home/Home.module.css
+  - frontend/src/pages/rsa/RSAPage.jsx        ← Interface RSA
+  - frontend/src/pages/rsa/RSAPage.module.css
+
+FICHIER BACKEND :
+  - backend/routers/rsa.py
+
+ROUTES API IMPLÉMENTÉES :
+  POST /api/rsa/generate-key     → Génération paire de clés RSA
+  POST /api/rsa/encrypt-file     → Chiffrement de fichier (upload)
+  POST /api/rsa/decrypt-file     → Déchiffrement de fichier (upload)
+  GET  /api/rsa/current-key      → Clé active en mémoire
+
+ROUTE FRONTEND :
+  / (Accueil)  → http://localhost:5173/
+  /rsa         → http://localhost:5173/rsa
+
+STATUT : ✅ Implémenté et fonctionnel
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ MEMBRE 2 — Elliptic Curve Cryptography
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Responsabilité : Interface ECC Cryptography
+
+FICHIERS À COMPLÉTER :
+  BACKEND  → backend/routers/ecc.py
+  FRONTEND → frontend/src/pages/ecc/ECCPage.jsx
+             frontend/src/pages/ecc/ECCPage.module.css  (créer si besoin)
+
+ROUTE FRONTEND ASSIGNÉE : /ecc
+
+ROUTES API À CRÉER (préfixe : /api/ecc) :
+  POST /api/ecc/generate-key     → Générer paire de clés (privée k, publique Q=k·G)
+  POST /api/ecc/encrypt-file     → Chiffrer fichier avec clé publique
+  POST /api/ecc/decrypt-file     → Déchiffrer fichier avec clé privée
+
+CONSEILS D'IMPLÉMENTATION :
+  1. Utilisez la bibliothèque Python "tinyec" ou implémentez manuellement
+     les opérations : addition de points, multiplication scalaire
+  2. Paramètres de courbe recommandés pour l'éducation :
+     Courbe : secp256k1 ou courbe custom avec petits paramètres
+  3. Pour le chiffrement de fichier, utilisez ECIES :
+     - Choisir k aléatoire
+     - C1 = k·G  (point éphémère)
+     - Secret partagé = k·Q (clé publique destinataire)
+     - Dériver clé symétrique AES via SHA256(secret)
+     - Chiffrer le fichier avec AES
+  4. Côté frontend, réutilisez le style de RSAPage.module.css
+
+STYLE UI À RESPECTER :
+  - Couleur accent : #00c896 (vert)
+  - Même structure que RSAPage (section, dropzone, keyBox, alert)
+  - Variables CSS globales dans src/index.css
+
+INSTALLATION DÉPENDANCE (si tinyec) :
+  pip install tinyec
+  Ajoutez "tinyec" dans backend/requirements.txt
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ MEMBRE 3 — RSA Attack
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Responsabilité : Interface RSA Attack
+
+FICHIERS À COMPLÉTER :
+  BACKEND  → backend/routers/rsa_attack.py
+  FRONTEND → frontend/src/pages/rsa_attack/RSAAttackPage.jsx
+             frontend/src/pages/rsa_attack/RSAAttackPage.module.css
+
+ROUTE FRONTEND ASSIGNÉE : /rsa-attack
+
+ROUTES API À CRÉER (préfixe : /api/rsa-attack) :
+  POST /api/rsa-attack/factorize    → Factoriser n pour trouver p et q
+  POST /api/rsa-attack/wiener       → Attaque de Wiener (d petit)
+  POST /api/rsa-attack/brute-force  → Force brute petit exposant
+
+ATTAQUES RSA À DÉMONTRER :
+
+  1. FACTORISATION DE n (force brute)
+     Entrée  : n (petit pour démo)
+     Sortie  : p, q trouvés + d calculé + étapes
+     Algo    : Tester diviseurs jusqu'à √n
+
+  2. ATTAQUE DE WIENER
+     Contexte : Quand d est trop petit (d < n^0.25)
+     Entrée   : e, n
+     Sortie   : d trouvé via fractions continues
+     Algo     : Développement en fractions continues de e/n
+
+  3. ATTAQUE PETIT e (e=3, Håstad)
+     Contexte : Même message chiffré avec e=3 pour 3 clés
+     Entrée   : 3 chiffrés, 3 modules
+     Sortie   : message original via théorème CRT
+
+STYLE UI :
+  - Couleur accent : #ff6b35 (orange)
+  - Affichez les étapes mathématiques de l'attaque
+  - Indicateur de progression / étapes visitées
+  - Message pédagogique expliquant la vulnérabilité
+
+CONSEIL :
+  Séparez la logique backend (algorithme pur) du frontend (affichage).
+  Le backend retourne JSON avec : { success, steps: [...], result: {...} }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ MEMBRE 4 — ECC Attack
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Responsabilité : Interface ECC Attack
+
+FICHIERS À COMPLÉTER :
+  BACKEND  → backend/routers/ecc_attack.py
+  FRONTEND → frontend/src/pages/ecc_attack/ECCAttackPage.jsx
+             frontend/src/pages/ecc_attack/ECCAttackPage.module.css
+
+ROUTE FRONTEND ASSIGNÉE : /ecc-attack
+
+ROUTES API À CRÉER (préfixe : /api/ecc-attack) :
+  POST /api/ecc-attack/bsgs           → Baby-step Giant-step
+  POST /api/ecc-attack/pohlig-hellman → Pohlig-Hellman
+  POST /api/ecc-attack/anomalous      → Attaque courbes anomales
+
+ATTAQUES ECC À DÉMONTRER :
+
+  1. BABY-STEP GIANT-STEP (BSGS)
+     Problème : Résoudre Q = k·G (trouver k)
+     Complexité : O(√n) vs O(n) force brute
+     Entrée   : Point G, Point Q, ordre n (petit)
+     Sortie   : k trouvé + nombre d'étapes + visualisation
+
+  2. POHLIG-HELLMAN
+     Contexte : Ordre du groupe n a de petits facteurs premiers
+     Entrée   : G, Q, n = p1^e1 * p2^e2 * ...
+     Sortie   : k via CRT + facteurs utilisés
+
+  3. COURBES ANOMALES (#E(Fp) = p)
+     Contexte : Courbes où le nombre de points = p (le module)
+     Attaque  : Smar's attack — transfert vers Fp additif
+     Sortie   : k trouvé trivialement
+
+STYLE UI :
+  - Couleur accent : #c084fc (violet)
+  - Visualisation graphique des étapes BSGS si possible
+  - Explication pédagogique de chaque attaque
+
+FORMAT RÉPONSE BACKEND RECOMMANDÉ :
+  {
+    "success": true,
+    "attack_name": "Baby-step Giant-step",
+    "result": { "k": 42 },
+    "steps": ["Étape 1...", "Étape 2..."],
+    "complexity": "O(√n)",
+    "explanation": "Explication de la vulnérabilité..."
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ RÈGLES COMMUNES — À RESPECTER PAR TOUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. NE JAMAIS MODIFIER :
+   - backend/main.py
+   - frontend/src/App.jsx
+   - frontend/src/main.jsx
+   - frontend/src/index.css (sauf ajout de variables)
+   - frontend/src/components/Navbar.*
+
+2. TOUJOURS UTILISER les variables CSS globales :
+   --navy, --blue, --accent, --white, --gray-*, etc.
+   Définis dans frontend/src/index.css
+
+3. STRUCTURE DES COMPOSANTS REACT :
+   - Un fichier .jsx par page principale
+   - Un fichier .module.css associé
+   - Découper en sous-composants si > 150 lignes
+
+4. GESTION DES ERREURS API :
+   - Toujours afficher les erreurs à l'utilisateur
+   - Utiliser le composant Alert (voir RSAPage.jsx comme modèle)
+   - Format FastAPI : raise HTTPException(status_code=..., detail="message")
+
+5. COMMITS GIT :
+   - Travaillez sur votre propre branche : git checkout -b membre-X-feature
+   - Ne faites pas de push sur main sans validation du groupe
+
+6. COMMUNICATION :
+   - Si vous avez besoin de données d'un autre module (ex. M3 a besoin
+     de la clé RSA générée par M1), passez par l'API :
+     GET /api/rsa/current-key
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ DESIGN SYSTEM — RAPPEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Couleurs principales :
+  Navy (fond sombre)   : #0f1e3c
+  Blue (boutons, liens): #1a6bc4 / #2584e8
+  Accent (highlights)  : #00d4ff
+  White (fond clair)   : #ffffff
+  Off-white (bg page)  : #f0f4ff
+
+Polices :
+  Titres   : Syne (font-family: var(--font-display))
+  Corps    : DM Sans (font-family: var(--font-body))
+  Code/clés: JetBrains Mono (font-family: var(--font-mono))
+
+Border-radius standard :
+  Petits éléments  : 8px  (--radius-sm)
+  Éléments moyens  : 14px (--radius-md)
+  Grandes sections : 20px (--radius-lg)
+  Cartes principales: 28px (--radius-xl)
+
+Voir frontend/src/pages/rsa/RSAPage.jsx pour un exemple complet.
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  Bonne chance à tous ! — CyberProject Team                                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
