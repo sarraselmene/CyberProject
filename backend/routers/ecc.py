@@ -9,7 +9,7 @@ import hashlib
 import secrets
 import struct
 
-router = APIRouter(prefix="/api/ecc", tags=["ECC"])
+router = APIRouter()
 
 # ─────────────────────────────────────────────
 #  Courbe secp256k1 (paramètres)
