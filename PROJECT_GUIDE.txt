@@ -13,8 +13,8 @@ cyberproject/
 │   ├── requirements.txt           ← Dépendances Python
 │   └── routers/
 │       ├── __init__.py
-│       ├── rsa.py                 ← MEMBRE 1 (déjà implémenté)
-│       ├── ecc.py                 ← MEMBRE 2 (à compléter)
+│       ├── rsa.py                 ← MEMBRE 1 (déjà implémenté par mouhamed oussema zoghlemi)
+│       ├── ecc.py                 ← MEMBRE 2 (déja implémenté par eya mhiri)
 │       ├── rsa_attack.py          ← MEMBRE 3 (à compléter)
 │       └── ecc_attack.py          ← MEMBRE 4 (à compléter)
 │
