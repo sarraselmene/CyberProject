@@ -1,6 +1,6 @@
 # CyberProject
 
-Application web éducative de cybersécurité — Projet universitaire (équipe de 4).
+Application web éducative de cybersécurité — Projet universitaire.
 
 ## Stack technique
 - **Frontend** : React 18 + Vite + React Router
@@ -26,14 +26,12 @@ npm run dev
 
 ## Modules
 
-| Interface | Route | Membre |
-|-----------|-------|--------|
-| Accueil | `/` | Membre 1 |
-| RSA Cryptography | `/rsa` | Membre 1 |
-| ECC Cryptography | `/ecc` | Membre 2 |
-| RSA Attack | `/rsa-attack` | Membre 3 |
-| ECC Attack | `/ecc-attack` | Membre 4 |
+| Interface | Route |
+|-----------|-------|
+| Accueil | `/` |
+| RSA Cryptography | `/rsa` |
+| ECC Cryptography | `/ecc` |
+| RSA Attack | `/rsa-attack` |
+| ECC Attack | `/ecc-attack` |
 
-## Guide équipe
 
-Voir `PROJECT_GUIDE.txt` pour les instructions détaillées par membre.
