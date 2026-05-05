@@ -413,3 +413,90 @@
   .curveBar span { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
   .btn       { width: 100%; justify-content: center; }
 }
+/* ── Grille inputs courbe custom ─────────────────────────────── */
+.inputGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .inputGrid { grid-template-columns: 1fr; }
+}
+
+/* ── Rangée de boutons ───────────────────────────────────────── */
+.btnRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Bouton secondaire ───────────────────────────────────────── */
+.btnSecondary {
+  background: transparent;
+  color: var(--navy);
+  border: 1.5px solid rgba(15, 30, 60, 0.2);
+  box-shadow: none;
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: rgba(15, 30, 60, 0.05);
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+
+/* ── Badge temps d'exécution ─────────────────────────────────── */
+.timeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 4px 10px;
+  align-self: flex-start;
+}
+
+/* ── Label de sous-section ───────────────────────────────────── */
+.sectionLabel {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0;
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid rgba(15, 30, 60, 0.08);
+  margin: 4px 0;
+}
+
+/* ── Résultat vérification ───────────────────────────────────── */
+.verifyResult {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.keyBoxSuccess {
+  border: 1px solid rgba(0, 200, 150, 0.4);
+}
+
+.keyBoxError {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* ── inputRow en ligne sur desktop ──────────────────────────── */
+@media (min-width: 601px) {
+  .inputRow {
+    flex-direction: row;
+  }
+  .inputRow .inputWrap {
+    flex: 1;
+  }
+}
