@@ -532,3 +532,95 @@
   .hastadFlow { flex-direction: column; }
   .flowArrow { transform: rotate(90deg); }
 }
+
+/* ── Mode selector ── */
+.modeSelector {
+  display: flex;
+  gap: 0.5rem;
+  background: #f1f5f9;
+  padding: 0.35rem;
+  border-radius: var(--radius-md, 14px);
+}
+.modeBtn {
+  flex: 1;
+  padding: 0.55rem 1rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #64748b;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.modeBtnActive {
+  background: #fff;
+  color: #ff6b35;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* ── Wiener table ── */
+.wienerTableWrap {
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md, 14px);
+  overflow: hidden;
+}
+.wienerScroll {
+  overflow-x: auto;
+}
+.wienerTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+.wienerTable thead {
+  background: #0f1e3c;
+  color: #ff6b35;
+}
+.wienerTable th {
+  padding: 0.55rem 0.85rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.wienerTable td {
+  padding: 0.45rem 0.85rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  white-space: nowrap;
+}
+.wienerTable tbody tr:hover { background: #f8fafc; }
+.wienerTable tbody tr:last-child td { border-bottom: none; }
+.rowFound td { background: #f0fdf4 !important; color: #15803d; font-weight: 700; }
+.rowCandidate td { background: #fff7ed; }
+.mono { font-family: var(--font-mono, 'JetBrains Mono', monospace); }
+
+/* ── File / Message section ── */
+.fileSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: var(--radius-md, 14px);
+  padding: 1rem 1.25rem;
+}
+.fileBlock { display: flex; flex-direction: column; gap: 0.4rem; }
+.fileInput {
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 0.85rem;
+  color: #475569;
+  cursor: pointer;
+}
+.fileHint { font-size: 0.75rem; color: #94a3b8; font-family: var(--font-mono, monospace); }
+.orDivider { text-align: center; color: #94a3b8; font-size: 0.82rem; }
+.inputRowInline { display: flex; gap: 0.5rem; align-items: center; }
+.inputRowInline .input { flex: 1; }
+
+/* ── Manual Hastad grid ── */
+.manualGrid { display: flex; flex-direction: column; gap: 0.75rem; }
+.manualRow { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }

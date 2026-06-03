@@ -74,15 +74,14 @@ def continued_fraction_expansion(num: int, den: int) -> List[int]:
     return coeffs
 
 def convergents(coeffs: List[int]):
-    """Génère les convergents d'un développement en fractions continues."""
-    for i in range(1, len(coeffs) + 1):
-        frac = Fraction(0)
-        for c in reversed(coeffs[:i]):
-            if frac == 0:
-                frac = Fraction(c)
-            else:
-                frac = c + Fraction(1, frac)
-        yield frac.numerator, frac.denominator
+    """Génère les convergents via la récurrence standard (100% entiers)."""
+    n0, d0 = 1, 0  # h_{-1}, k_{-1}
+    n1, d1 = coeffs[0], 1  # h_0, k_0
+    yield n1, d1
+    for c in coeffs[1:]:
+        n0, n1 = n1, c * n1 + n0
+        d0, d1 = d1, c * d1 + d0
+        yield n1, d1
 
 def crt(remainders: List[int], moduli: List[int]) -> int:
     """Théorème chinois des restes."""
@@ -108,13 +107,31 @@ class WienerRequest(BaseModel):
     n: int
 
 class HastadRequest(BaseModel):
-    ciphertexts: List[int]   # [c1, c2, c3] — les 3 chiffrés
-    moduli: List[int]         # [n1, n2, n3] — les 3 modules
-    e: int = 3               # exposant public (3 par défaut)
+    ciphertexts: List[int]
+    moduli: List[int]
+    e: int = 3
 
 class WeakKeyGenRequest(BaseModel):
-    bits: int = 16           # taille de p et q (petit pour la démo)
-    attack_type: str = "factorize"  # "factorize" | "wiener" | "hastad"
+    bits: int = 16
+    attack_type: str = "factorize"
+
+class ManualFactorizeRequest(BaseModel):
+    n: int
+    e: Optional[int] = None        # optionnel : si fourni, on calcule d directement
+
+class ManualWienerRequest(BaseModel):
+    e: int
+    n: int
+    # p et q optionnels : si fournis, on vérifie si d est bien vulnérable
+    p: Optional[int] = None
+    q: Optional[int] = None
+
+class ManualHastadRequest(BaseModel):
+    ciphertexts: List[int]
+    moduli: List[int]
+    e: int = 3
+    # message optionnel pour vérification
+    message: Optional[int] = None
 
 
 # ── Route status ─────────────────────────────────────────────────
@@ -174,45 +191,50 @@ def generate_weak_key(req: WeakKeyGenRequest):
 
     elif req.attack_type == "wiener":
         steps.append("Génération d'une clé RSA avec d petit (attaque de Wiener)")
-        # On génère p et q normaux mais on choisit d < n^0.25
-        bits = 32
-        def gen_prime(bits):
+        # 24 bits par premier -> n ~ 48 bits -> sous 2^53 (limite JSON/JS)
+        bits = 24
+        def gen_prime_w(b):
             while True:
-                n = random.getrandbits(bits) | (1 << (bits - 1)) | 1
-                if all(n % i != 0 for i in range(2, min(1000, int(n**0.5) + 1))):
-                    return n
+                candidate = random.getrandbits(b) | (1 << (b - 1)) | 1
+                if all(candidate % i != 0 for i in range(2, isqrt(candidate) + 1)):
+                    return candidate
 
-        p = gen_prime(bits)
-        q = gen_prime(bits)
+        p = gen_prime_w(bits)
+        q = gen_prime_w(bits)
         while q == p:
-            q = gen_prime(bits)
+            q = gen_prime_w(bits)
 
         n = p * q
         phi = (p - 1) * (q - 1)
 
-        # Choisir d petit < n^(1/4) / 3
-        max_d = max(2, int(n**0.25) // 3)
+        threshold = isqrt(isqrt(n))
+        max_d = max(2, threshold // 3)
         d = random.randint(2, max_d)
+        attempts = 0
         while math.gcd(d, phi) != 1:
             d = random.randint(2, max_d)
+            attempts += 1
+            if attempts > 1000:
+                d = 2
+                break
 
-        e = mod_inverse(d, phi)
-        if e is None:
-            e = 65537
-            d = mod_inverse(e, phi)
+        e_val = mod_inverse(d, phi)
+        if e_val is None:
+            e_val = 65537
+            d = mod_inverse(e_val, phi)
 
         steps.append(f"p = {p}, q = {q}")
-        steps.append(f"n = {n}")
-        steps.append(f"d choisi = {d}  (seuil n^0.25 = {int(n**0.25)})")
-        steps.append(f"e calculé = {e}")
-        steps.append("⚠️ Vulnérabilité : d < n^0.25, l'attaque de Wiener s'applique !")
+        steps.append(f"n = {n}  (48 bits — sûr pour JSON)")
+        steps.append(f"d choisi = {d}  (seuil n^0.25/3 = {max_d})")
+        steps.append(f"e calculé = {e_val}")
+        steps.append("⚠️ Vulnérabilité : d < n^0.25/3, l'attaque de Wiener s'applique !")
 
         return {
             "attack_type": "wiener",
-            "public_key": {"e": e, "n": n},
+            "public_key": {"e": e_val, "n": n},
             "private_key": {"d": d, "p": p, "q": q},
             "steps": steps,
-            "warning": f"d={d} est trop petit ! (n^0.25 ≈ {int(n**0.25)})"
+            "warning": f"d={d} est trop petit ! (n^0.25 ≈ {threshold}, seuil/3 = {max_d})"
         }
 
     elif req.attack_type == "hastad":
@@ -363,76 +385,81 @@ def factorize(req: FactorizeRequest):
 
 @router.post("/wiener")
 def wiener_attack(req: WienerRequest):
-    """
-    Attaque de Wiener : si d < n^0.25 / 3, on retrouve d via les fractions continues de e/n.
-    Référence : Wiener, M. (1990). "Cryptanalysis of short RSA secret exponents."
-    """
+    """Attaque de Wiener avec tableau détaillé des fractions continues."""
     e, n = req.e, req.n
-    steps = []
-    steps.append(f"Entrée : e = {e}, n = {n}")
-    steps.append(f"Seuil de Wiener : n^(1/4) / 3 ≈ {int(n**0.25) // 3}")
-    steps.append("── Développement en fractions continues de e/n ──")
+    threshold = isqrt(isqrt(n)) // 3
+    table_rows = []  # tableau détaillé pour le frontend
 
     coeffs = continued_fraction_expansion(e, n)
-    steps.append(f"Coefficients : {coeffs[:12]}{'…' if len(coeffs) > 12 else ''}")
 
-    for i, (k, d_candidate) in enumerate(convergents(coeffs)):
-        if k == 0:
-            continue
+    # Calcul manuel avec récurrence pour avoir les détails de chaque étape
+    h_prev, h_curr = 1, coeffs[0]   # h_{-1}=1, h_0=a_0
+    k_prev, k_curr = 0, 1           # k_{-1}=0, k_0=1
 
-        steps.append(f"Convergent {i+1} : k={k}, d={d_candidate}")
+    # étape 0
+    table_rows.append({
+        "i": 0, "a": coeffs[0],
+        "k_calc": f"k0={coeffs[0]}", "d_calc": f"d0=1",
+        "k": h_curr, "d": k_curr,
+        "fraction": f"{h_curr}/{k_curr}"
+    })
 
-        # Test : si k*d ≡ 1 (mod φ(n)), alors φ(n) = (e*d - 1) / k
-        if (e * d_candidate - 1) % k != 0:
-            continue
+    found = False
+    result_data = {}
+    steps = [f"e={e}, n={n}", f"Seuil Wiener : n^(1/4)/3 ≈ {threshold}",
+             f"Coefficients FC : {coeffs[:10]}{'…' if len(coeffs)>10 else ''}"]
 
-        phi_candidate = (e * d_candidate - 1) // k
+    for i, a in enumerate(coeffs[1:], start=1):
+        h_new = a * h_curr + h_prev
+        k_new = a * k_curr + k_prev
 
-        # Vérification : p et q sont racines de x² - (n - φ + 1)x + n = 0
-        # b = n - phi + 1 = p + q
-        b = n - phi_candidate + 1
-        discriminant = b * b - 4 * n
-        if discriminant < 0:
-            continue
+        table_rows.append({
+            "i": i, "a": a,
+            "k_calc": f"k{i}=({a}×{h_curr})+{h_prev}={h_new}",
+            "d_calc": f"d{i}=({a}×{k_curr})+{k_prev}={k_new}",
+            "k": h_new, "d": k_new,
+            "fraction": f"{h_new}/{k_new}",
+            "is_candidate": False
+        })
 
-        sqrt_disc = is_perfect_square(discriminant)
-        if sqrt_disc is None:
-            continue
+        k_test, d_test = h_new, k_new
+        if k_test > 0 and (e * d_test - 1) % k_test == 0:
+            phi_c = (e * d_test - 1) // k_test
+            b = n - phi_c + 1
+            disc = b * b - 4 * n
+            if disc >= 0:
+                sq = is_perfect_square(disc)
+                if sq is not None:
+                    p = (b + sq) // 2
+                    q = (b - sq) // 2
+                    if p * q == n and p > 1 and q > 1:
+                        table_rows[-1]["is_candidate"] = True
+                        table_rows[-1]["found"] = True
+                        steps.append(f"✅ d trouvé à l'étape {i} : d={d_test}")
+                        found = True
+                        result_data = {"d": d_test, "p": p, "q": q,
+                                       "phi": phi_c, "convergent_index": i}
+                        break
 
-        p = (b + sqrt_disc) // 2
-        q = (b - sqrt_disc) // 2
+        h_prev, h_curr = h_curr, h_new
+        k_prev, k_curr = k_curr, k_new
 
-        if p * q == n and p > 1 and q > 1:
-            steps.append(f"✅ d trouvé au convergent {i+1} : d = {d_candidate}")
-            steps.append(f"φ(n) candidat = {phi_candidate}")
-            steps.append(f"p = {p}, q = {q}")
-            steps.append("Vérification : p × q = n ✓")
-            return {
-                "success": True,
-                "attack_name": "Attaque de Wiener",
-                "result": {
-                    "d": d_candidate,
-                    "p": p,
-                    "q": q,
-                    "phi": phi_candidate,
-                    "convergent_index": i + 1
-                },
-                "steps": steps,
-                "complexity": "O(log² n)",
-                "explanation": (
-                    "L'attaque de Wiener exploite le théorème des fractions continues : "
-                    "si d < n^0.25 / 3, alors k/d apparaît parmi les convergents de e/n. "
-                    "Solution : utiliser d > n^0.5 (padding OAEP recommandé)."
-                )
-            }
+    if not found:
+        steps.append("Wiener échoue — d n'est pas assez petit")
 
     return {
-        "success": False,
+        "success": found,
         "attack_name": "Attaque de Wiener",
-        "result": {},
+        "result": result_data,
         "steps": steps,
-        "explanation": "d n'est probablement pas assez petit pour l'attaque de Wiener (d ≥ n^0.25 / 3)."
+        "table": table_rows,
+        "complexity": "O(log² n)",
+        "explanation": (
+            "L'attaque de Wiener exploite le théorème des fractions continues : "
+            "si d < n^0.25/3, alors k/d apparaît parmi les convergents de e/n."
+        )
     }
+    
 
 
 # ── 4. Attaque de Håstad (Broadcast Attack, e=3) ─────────────────
@@ -529,6 +556,183 @@ class DecryptRequest(BaseModel):
     ciphertext: int
     d: int
     n: int
+
+# ── Routes manuelles ─────────────────────────────────────────────
+
+@router.post("/manual-factorize")
+def manual_factorize(req: ManualFactorizeRequest):
+    """
+    Factorisation avec n saisi manuellement.
+    Si e est fourni, calcule aussi d après factorisation.
+    """
+    steps = [f"Entrée manuelle : n = {req.n}"]
+    if req.e:
+        steps.append(f"e fourni : {req.e}")
+
+    if req.n < 4:
+        raise HTTPException(status_code=400, detail="n doit être ≥ 4")
+    if req.n > 10**14:
+        raise HTTPException(status_code=400, detail="n trop grand (max 10^14)")
+
+    # Factorisation de Fermat
+    a = isqrt(req.n)
+    if a * a < req.n:
+        a += 1
+    found = False
+    p = q = None
+    for _ in range(200000):
+        b2 = a * a - req.n
+        b = is_perfect_square(b2)
+        if b is not None:
+            p, q = a + b, a - b
+            if p > 1 and q > 1:
+                found = True
+                break
+        a += 1
+    if not found:
+        for i in range(2, isqrt(req.n) + 1):
+            if req.n % i == 0:
+                p, q = i, req.n // i
+                found = True
+                break
+
+    if not found:
+        return {"success": False, "steps": steps, "result": {},
+                "explanation": "Impossible de factoriser ce n — trop grand ou premier."}
+
+    phi = (p - 1) * (q - 1)
+    steps.append(f"p = {p}, q = {q}, φ(n) = {phi}")
+
+    result = {"p": p, "q": q, "phi": phi}
+    if req.e:
+        if math.gcd(req.e, phi) != 1:
+            steps.append(f"⚠️ pgcd(e={req.e}, φ(n))≠1 — e invalide pour ce n")
+        else:
+            d = mod_inverse(req.e, phi)
+            result["e"] = req.e
+            result["d"] = d
+            steps.append(f"d = e⁻¹ mod φ(n) = {d}")
+    else:
+        for e_try in [3, 17, 257, 65537]:
+            if math.gcd(e_try, phi) == 1:
+                result["e"] = e_try
+                result["d"] = mod_inverse(e_try, phi)
+                steps.append(f"e supposé = {e_try}, d = {result['d']}")
+                break
+
+    return {"success": True, "attack_name": "Factorisation manuelle",
+            "result": result, "steps": steps,
+            "complexity": f"O(√n)", "explanation": "Factorisation réussie sur les valeurs saisies."}
+
+
+@router.post("/manual-wiener")
+def manual_wiener(req: ManualWienerRequest):
+    """
+    Attaque de Wiener sur e, n saisis manuellement.
+    Si p et q sont fournis, on vérifie d'abord si la clé est vulnérable.
+    """
+    steps = [f"Entrée manuelle : e = {req.e}, n = {req.n}"]
+    threshold = isqrt(isqrt(req.n)) // 3
+    steps.append(f"Seuil Wiener : n^(1/4)/3 ≈ {threshold}")
+
+    # Si p et q fournis : vérification préalable
+    if req.p and req.q:
+        if req.p * req.q != req.n:
+            raise HTTPException(status_code=400, detail="p × q ≠ n — valeurs incohérentes")
+        phi = (req.p - 1) * (req.q - 1)
+        d_real = mod_inverse(req.e, phi)
+        steps.append(f"p={req.p}, q={req.q} fournis → φ(n)={phi}, d réel={d_real}")
+        if d_real and d_real <= threshold:
+            steps.append(f"✅ d={d_real} < seuil={threshold} → clé vulnérable à Wiener !")
+        else:
+            steps.append(f"⚠️ d={d_real} ≥ seuil={threshold} → clé NON vulnérable à Wiener")
+
+    # Lancer l'attaque
+    coeffs = continued_fraction_expansion(req.e, req.n)
+    steps.append(f"Coefficients FC : {coeffs[:10]}{'…' if len(coeffs)>10 else ''}")
+
+    table_rows = []
+    h_prev, h_curr = 1, coeffs[0]
+    k_prev, k_curr = 0, 1
+    table_rows.append({"i":0,"a":coeffs[0],"k_calc":f"k0={coeffs[0]}","d_calc":"d0=1","k":h_curr,"d":k_curr,"fraction":f"{h_curr}/{k_curr}","is_candidate":False,"found":False})
+
+    found = False
+    result_data = {}
+    for i, a in enumerate(coeffs[1:], start=1):
+        h_new = a * h_curr + h_prev
+        k_new = a * k_curr + k_prev
+        row = {"i":i,"a":a,"k_calc":f"k{i}=({a}×{h_curr})+{h_prev}={h_new}",
+               "d_calc":f"d{i}=({a}×{k_curr})+{k_prev}={k_new}",
+               "k":h_new,"d":k_new,"fraction":f"{h_new}/{k_new}","is_candidate":False,"found":False}
+        if h_new > 0 and (req.e * k_new - 1) % h_new == 0:
+            phi_c = (req.e * k_new - 1) // h_new
+            b = req.n - phi_c + 1
+            disc = b * b - 4 * req.n
+            if disc >= 0:
+                sq = is_perfect_square(disc)
+                if sq is not None:
+                    pp = (b + sq) // 2
+                    qq = (b - sq) // 2
+                    if pp * qq == req.n and pp > 1 and qq > 1:
+                        row["is_candidate"] = True
+                        row["found"] = True
+                        found = True
+                        result_data = {"d": k_new, "p": pp, "q": qq, "phi": phi_c, "convergent_index": i}
+                        steps.append(f"✅ d trouvé à l'étape {i} : d={k_new}")
+        table_rows.append(row)
+        h_prev, h_curr = h_curr, h_new
+        k_prev, k_curr = k_curr, k_new
+        if found:
+            break
+
+    if not found:
+        steps.append("Wiener échoue sur ces valeurs — d non vulnérable")
+
+    return {"success": found, "attack_name": "Wiener (manuel)",
+            "result": result_data, "steps": steps, "table": table_rows,
+            "complexity": "O(log² n)",
+            "explanation": "Attaque de Wiener sur valeurs saisies manuellement."}
+
+
+@router.post("/manual-hastad")
+def manual_hastad(req: ManualHastadRequest):
+    """
+    Attaque de Håstad sur ciphertexts/moduli saisis manuellement.
+    Vérifie optionnellement contre le message fourni.
+    """
+    if len(req.ciphertexts) < req.e or len(req.moduli) < req.e:
+        raise HTTPException(status_code=400, detail=f"Il faut au moins {req.e} chiffrés et modules")
+
+    steps = [f"Entrée manuelle : e={req.e}"]
+    c = req.ciphertexts[:req.e]
+    n = req.moduli[:req.e]
+    for i in range(req.e):
+        steps.append(f"c{i+1}={c[i]} mod n{i+1}={n[i]}")
+        for j in range(i+1, req.e):
+            if math.gcd(n[i], n[j]) != 1:
+                raise HTTPException(status_code=400, detail=f"n{i+1} et n{j+1} ne sont pas copremiers")
+
+    m_e = crt(c, n)
+    N = 1
+    for ni in n: N *= ni
+    steps.append(f"CRT → m^{req.e} = {m_e} mod N")
+
+    m_recovered = integer_nth_root(m_e, req.e)
+    verified = m_recovered ** req.e == m_e
+
+    if req.message is not None:
+        if m_recovered == req.message:
+            steps.append(f"✅ Message vérifié : m={m_recovered} correspond au message fourni")
+        else:
+            steps.append(f"⚠️ m récupéré={m_recovered} ≠ message fourni={req.message}")
+
+    steps.append(f"Racine {req.e}-ième : m = {m_recovered} {'✅' if verified else '≈'}")
+
+    return {"success": True, "attack_name": f"Håstad manuel (e={req.e})",
+            "result": {"message": m_recovered, "verified": verified},
+            "steps": steps, "complexity": f"O(e³·log N)",
+            "explanation": f"Attaque de Håstad sur valeurs saisies manuellement avec e={req.e}."}
+
 
 @router.post("/encrypt")
 def encrypt_demo(req: EncryptRequest):
